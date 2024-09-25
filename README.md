@@ -56,3 +56,89 @@ To effectively perform these tasks:
 5. Regularly test and update your disaster recovery procedures
 
 Would you like me to elaborate on any specific area of this guide?
+
+Certainly. As an Oracle DBA, managing tablespaces is a crucial responsibility. Here's a detailed guide on how to handle tablespace space management:
+
+1. Monitor Tablespace Usage:
+   a. Use the following SQL query to check tablespace usage:
+
+   ```sql
+   SELECT df.tablespace_name,
+          df.total_space_mb,
+          (df.total_space_mb - fs.free_space_mb) AS used_space_mb,
+          fs.free_space_mb,
+          ROUND((fs.free_space_mb / df.total_space_mb) * 100, 2) AS free_percentage
+   FROM (SELECT tablespace_name, 
+                ROUND(SUM(bytes) / 1024 / 1024, 2) AS total_space_mb
+         FROM dba_data_files
+         GROUP BY tablespace_name) df
+   JOIN (SELECT tablespace_name, 
+                ROUND(SUM(bytes) / 1024 / 1024, 2) AS free_space_mb
+         FROM dba_free_space
+         GROUP BY tablespace_name) fs
+   ON df.tablespace_name = fs.tablespace_name
+   ORDER BY free_percentage;
+   ```
+
+   b. Set up automated monitoring using Oracle Enterprise Manager or custom scripts
+
+2. Set Alerts:
+   a. Configure alerts to notify you when tablespaces reach a certain threshold (e.g., 80% full)
+   b. In Enterprise Manager:
+      - Navigate to the database home page
+      - Click on "Administration" > "Metric and Policy Settings"
+      - Set up "Tablespace Space Used (%)" metric
+
+3. Add Space When Needed:
+   a. To add a new datafile to an existing tablespace:
+
+   ```sql
+   ALTER TABLESPACE tablespace_name 
+   ADD DATAFILE '/path/to/new_datafile.dbf' 
+   SIZE 100M 
+   AUTOEXTEND ON NEXT 10M MAXSIZE 1G;
+   ```
+
+   b. To extend an existing datafile:
+
+   ```sql
+   ALTER DATABASE DATAFILE '/path/to/existing_datafile.dbf' 
+   RESIZE 500M;
+   ```
+
+4. Implement Autoextend:
+   a. Enable autoextend for datafiles:
+
+   ```sql
+   ALTER DATABASE DATAFILE '/path/to/datafile.dbf' 
+   AUTOEXTEND ON NEXT 10M MAXSIZE 1G;
+   ```
+
+   b. Check autoextend status:
+
+   ```sql
+   SELECT file_name, autoextensible, increment_by, maxbytes
+   FROM dba_data_files;
+   ```
+
+5. Optimize Tablespace Usage:
+   a. Identify and reclaim unused space:
+
+   ```sql
+   ALTER TABLESPACE tablespace_name COALESCE;
+   ```
+
+   b. Consider using Oracle's Automatic Segment Space Management (ASSM)
+
+6. Implement Proactive Measures:
+   a. Use Oracle's Segment Advisor to identify segments that can benefit from shrinking or reorganization
+   b. Regularly archive and purge old data to free up space
+
+7. Document and Review:
+   a. Maintain documentation of tablespace configurations and growth patterns
+   b. Regularly review and adjust your tablespace management strategy
+
+Remember to always test these operations in a non-production environment first, and ensure you have proper backups before making any changes to production tablespaces.
+
+Would you like me to elaborate on any specific part of this tablespace management process?
+
